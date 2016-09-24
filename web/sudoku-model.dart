@@ -9,6 +9,8 @@ abstract class SudokuGameBase {
 
   int valueAt(SudokuCell cell);
 
+  Map<SudokuCell, int> get solvedCells => {};
+
   void valueIfKnown(SudokuCell cell, func(int)) {
     int value = valueAt(cell);
     if (value != null) {
@@ -25,14 +27,25 @@ abstract class SudokuGameBase {
     return null;
   }
 
-  SudokuMove doNextMove() {
+  SudokuGameBase doNextMove() {
     SudokuMove move = firstSingleOption();
     if (move != null) {
-
+      return _newMove(move);
     }
     for (var box in board.boxes) {
+      move = box.findMove(optionsPerCell);
+      if (move != null) {
+        return _newMove(move);
+      }
+    }
+  }
+
+  SudokuGameBase _newMove(SudokuMove nextMove) {
+    var newGame = SudokuAutoGame.newFrom(this, nextMove, false);
+    if (newGame == null) {
 
     }
+    return newGame;
   }
 }
 
@@ -69,6 +82,55 @@ class SudokuGame extends SudokuGameBase {
         optionsPerCell[cell] = board.possibleValues(cell, this);
       }
     }
+  }
+}
+
+class SudokuGamePlay extends SudokuGameBase {
+  SudokuGame game;
+  SudokuGameBase previousPlay;
+  Map<SudokuCell, int> solvedCells;
+  SudokuMove lastMove;
+
+  @override
+  int valueAt(SudokuCell cell) {
+    int value = solvedCells[cell];
+    if (value == null) {
+      value = game.valueAt(cell);
+    }
+    return value;
+  }
+}
+
+class SudokuAutoGame extends SudokuGamePlay {
+  bool guessed;
+
+  static SudokuAutoGame newFrom(
+      SudokuGameBase previousPlay, SudokuMove nextMove, bool guessed) {
+    var optionsPerCell = new Map.from(previousPlay.optionsPerCell);
+    optionsPerCell.remove(nextMove.cell);
+
+    previousPlay.board.cellsSharingBoxWith(nextMove.cell, (eachCell) {
+      var values = optionsPerCell[eachCell];
+      if (values != null) {
+        values = new List.from(values)..remove(nextMove.value);
+        if (values.isEmpty) {
+          return null;
+        }
+        optionsPerCell[eachCell] = values;
+      }
+    });
+
+    return new SudokuAutoGame(previousPlay, nextMove, guessed, optionsPerCell);
+  }
+
+  SudokuAutoGame(SudokuGameBase previousPlay, SudokuMove lastMove, bool guessed, Map<SudokuCell, List<int>> optionsPerCell) {
+    this.game = previousPlay.game;
+    this.previousPlay = previousPlay;
+    this.optionsPerCell = optionsPerCell;
+    this.solvedCells = new Map.from(previousPlay.solvedCells);
+    this.solvedCells[lastMove.cell] = lastMove.value;
+    this.lastMove = lastMove;
+    this.guessed = guessed;
   }
 }
 
@@ -137,6 +199,20 @@ class SudokuBoard {
       values = eachBox.possibleValues(cell, values, game);
     });
     return values;
+  }
+
+  void cellsSharingBoxWith(SudokuCell cell, func(SudokuCell)) {
+    Set cellSet = new Set();
+    for (var box in boxes) {
+      if (box.includes(cell)) {
+        for (var eachCell in box.cells) {
+          if (eachCell != cell && !cellSet.contains(eachCell)) {
+            func(eachCell);
+            cellSet.add(eachCell);
+          }
+        }
+      }
+    }
   }
 }
 
