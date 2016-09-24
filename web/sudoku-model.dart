@@ -3,7 +3,9 @@ import 'dart:math';
 abstract class SudokuGameBase {
   Map<SudokuCell, List<int>> optionsPerCell;
 
-  SudokuGame game();
+  SudokuGame get game;
+
+  SudokuBoard get board => game.board;
 
   int valueAt(SudokuCell cell);
 
@@ -14,6 +16,24 @@ abstract class SudokuGameBase {
     }
   }
 
+  SudokuMove firstSingleOption() {
+    optionsPerCell.forEach((cell, values) {
+      if (values.length == 1) {
+        return new SudokuMove(cell, values.first);
+      }
+    });
+    return null;
+  }
+
+  SudokuMove doNextMove() {
+    SudokuMove move = firstSingleOption();
+    if (move != null) {
+
+    }
+    for (var box in board.boxes) {
+
+    }
+  }
 }
 
 class SudokuGame extends SudokuGameBase {
@@ -34,10 +54,11 @@ class SudokuGame extends SudokuGameBase {
     initOptionsPerCell();
   }
 
-  int valueAt(SudokuCell cell) => fixedCells[cell];
+  @override
+  SudokuGame get game => this;
 
   @override
-  SudokuGame game() => this;
+  int valueAt(SudokuCell cell) => fixedCells[cell];
 
   bool isFixed(SudokuCell cell) => fixedCells.containsKey(cell);
 
@@ -49,7 +70,6 @@ class SudokuGame extends SudokuGameBase {
       }
     }
   }
-
 }
 
 class SudokuGameBuilder {
@@ -116,8 +136,8 @@ class SudokuBoard {
     boxesFor(cell, (eachBox) {
       values = eachBox.possibleValues(cell, values, game);
     });
+    return values;
   }
-
 }
 
 class SudokuBox {
@@ -163,9 +183,8 @@ class SudokuBox {
     var result = values;
     for (var eachCell in cells) {
       if (eachCell != cell) {
-        game.valueIfKnown(cell, (int value) {
-          result = new List.from(result)
-            ..remove(value);
+        game.valueIfKnown(eachCell, (int value) {
+          result = new List.from(result)..remove(value);
         });
       }
     }
@@ -221,7 +240,8 @@ class SudokuCell {
   @override
   int get hashCode => xpos;
 
-  @override String toString() => "${xpos}@${ypos}";
+  @override
+  String toString() => "${xpos}@${ypos}";
 }
 
 class SudokuMove {

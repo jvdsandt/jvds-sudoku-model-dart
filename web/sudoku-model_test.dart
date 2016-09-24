@@ -43,5 +43,6 @@ void main() {
     var game = SudokuGame.newFromArray(rows);
     expect(game.isFixed(new SudokuCell(6, 1)), equals(true));
     expect(game.isFixed(new SudokuCell(7, 1)), equals(false));
+    expect(game.optionsPerCell[new SudokuCell(1, 8)], equals([2, 5, 8, 9]));
   });
 }
