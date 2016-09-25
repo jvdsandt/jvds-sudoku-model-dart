@@ -1,6 +1,7 @@
 import "package:test/test.dart";
 
-import "sudoku-model.dart";
+import "sudoku_model.dart";
+import "sudoku_database.dart";
 
 void main() {
 
@@ -30,34 +31,21 @@ void main() {
   });
 
   test("Build game", () {
-    List<List<int>> rows = [
-      [ 1, 0, 0, 0, 0, 7, 0, 9, 0 ],
-      [ 0, 3, 0, 0, 2, 0, 0, 0, 8 ],
-      [ 0, 0, 9, 6, 0, 0, 5, 0, 0 ],
-      [ 0, 0, 5, 3, 0, 0, 9, 0, 0 ],
-      [ 0, 1, 0, 0, 8, 0, 0, 0, 2 ],
-      [ 6, 0, 0, 0, 0, 4, 0, 0, 0 ],
-      [ 3, 0, 0, 0, 0, 0, 0, 1, 0 ],
-      [ 0, 4, 0, 0, 0, 0, 0, 0, 7 ],
-      [ 0, 0, 7, 0, 0, 0, 3, 0, 0 ] ];
-    var game = SudokuGame.newFromArray(rows);
+    var game = SudokuGame.newFromArray(standard9x9game);
     expect(game.isFixed(new SudokuCell(6, 1)), equals(true));
     expect(game.isFixed(new SudokuCell(7, 1)), equals(false));
     expect(game.optionsPerCell[new SudokuCell(1, 8)], equals([2, 5, 8, 9]));
   });
 
-  test("Solve game", () {
-    List<List<int>> rows = [
-      [ 1, 0, 0, 0, 0, 7, 0, 9, 0 ],
-      [ 0, 3, 0, 0, 2, 0, 0, 0, 8 ],
-      [ 0, 0, 9, 6, 0, 0, 5, 0, 0 ],
-      [ 0, 0, 5, 3, 0, 0, 9, 0, 0 ],
-      [ 0, 1, 0, 0, 8, 0, 0, 0, 2 ],
-      [ 6, 0, 0, 0, 0, 4, 0, 0, 0 ],
-      [ 3, 0, 0, 0, 0, 0, 0, 1, 0 ],
-      [ 0, 4, 0, 0, 0, 0, 0, 0, 7 ],
-      [ 0, 0, 7, 0, 0, 0, 3, 0, 0 ] ];
-    var game = SudokuGame.newFromArray(rows);
+  test("Solve simple game", () {
+    var game = SudokuGame.newFromArray(simple9x9game);
+    print("game = " + game.toString());
+    var solvedGame = game.solve();
+    print("solvedgame = " + solvedGame.toString());
+  });
+
+  test("Solve standard game", () {
+    var game = SudokuGame.newFromArray(standard9x9game);
     print("game = " + game.toString());
     var solvedGame = game.solve();
     print("solvedgame = " + solvedGame.toString());

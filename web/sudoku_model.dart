@@ -15,13 +15,6 @@ abstract class SudokuGameBase {
 
   bool isSolved() => false;
 
-  void valueIfKnown(SudokuCell cell, func(int)) {
-    int value = valueAt(cell);
-    if (value != null) {
-      func(value);
-    }
-  }
-
   SudokuGameBase doNextMove() {
     SudokuMove move = optionsPerCell.firstSingleOption();
     if (move != null) {
@@ -376,7 +369,7 @@ class SudokuCell {
       other is SudokuCell && other.xpos == xpos && other.ypos == ypos;
 
   @override
-  int get hashCode => xpos;
+  int get hashCode => (xpos * 10) + ypos;
 
   @override
   String toString() => "${xpos}@${ypos}";
