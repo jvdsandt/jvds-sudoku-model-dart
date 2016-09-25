@@ -45,4 +45,21 @@ void main() {
     expect(game.isFixed(new SudokuCell(7, 1)), equals(false));
     expect(game.optionsPerCell[new SudokuCell(1, 8)], equals([2, 5, 8, 9]));
   });
+
+  test("Solve game", () {
+    List<List<int>> rows = [
+      [ 1, 0, 0, 0, 0, 7, 0, 9, 0 ],
+      [ 0, 3, 0, 0, 2, 0, 0, 0, 8 ],
+      [ 0, 0, 9, 6, 0, 0, 5, 0, 0 ],
+      [ 0, 0, 5, 3, 0, 0, 9, 0, 0 ],
+      [ 0, 1, 0, 0, 8, 0, 0, 0, 2 ],
+      [ 6, 0, 0, 0, 0, 4, 0, 0, 0 ],
+      [ 3, 0, 0, 0, 0, 0, 0, 1, 0 ],
+      [ 0, 4, 0, 0, 0, 0, 0, 0, 7 ],
+      [ 0, 0, 7, 0, 0, 0, 3, 0, 0 ] ];
+    var game = SudokuGame.newFromArray(rows);
+    print("game = " + game.toString());
+    var solvedGame = game.solve();
+    print("solvedgame = " + solvedGame.toString());
+  });
 }

@@ -1,7 +1,9 @@
 import 'dart:math';
 
 abstract class SudokuGameBase {
-  Map<SudokuCell, List<int>> optionsPerCell;
+  final SudokuOptionsPerCell optionsPerCell;
+
+  const SudokuGameBase(this.optionsPerCell);
 
   SudokuGame get game;
 
@@ -11,6 +13,8 @@ abstract class SudokuGameBase {
 
   Map<SudokuCell, int> get solvedCells => {};
 
+  bool isSolved() => false;
+
   void valueIfKnown(SudokuCell cell, func(int)) {
     int value = valueAt(cell);
     if (value != null) {
@@ -18,54 +22,70 @@ abstract class SudokuGameBase {
     }
   }
 
-  SudokuMove firstSingleOption() {
-    optionsPerCell.forEach((cell, values) {
-      if (values.length == 1) {
-        return new SudokuMove(cell, values.first);
-      }
-    });
-    return null;
-  }
-
   SudokuGameBase doNextMove() {
-    SudokuMove move = firstSingleOption();
+    SudokuMove move = optionsPerCell.firstSingleOption();
     if (move != null) {
-      return _newMove(move);
+      return _newMove(move, false);
     }
     for (var box in board.boxes) {
       move = box.findMove(optionsPerCell);
       if (move != null) {
-        return _newMove(move);
+        return _newMove(move, false);
       }
     }
+    return _newMove(optionsPerCell.takeGuess(), true);
   }
 
-  SudokuGameBase _newMove(SudokuMove nextMove) {
-    var newGame = SudokuAutoGame.newFrom(this, nextMove, false);
-    if (newGame == null) {
-
+  SudokuGameBase solve() {
+    var game = this;
+    while (!game.isSolved()) {
+      game = game.doNextMove();
     }
-    return newGame;
+    return game;
+  }
+
+  @override
+  String toString() {
+    var buf = new StringBuffer();
+    for (int y = 1; y <= board.maxY; y++) {
+      for (int x = 1; x <= board.maxX; x++) {
+        var val = valueAt(new SudokuCell(x, y));
+        buf.write(val == null ? "? " : "$val ");
+      }
+      buf.writeln();
+    }
+    return buf.toString();
+  }
+
+  SudokuGameBase _newMove(SudokuMove nextMove, bool guessed) {
+    var newOptions = optionsPerCell.copyWithMove(board, nextMove);
+    if (newOptions == null) {
+      throw new Exception("invalid options");
+    }
+    var newSolvedCells = new Map.from(solvedCells)
+      ..[nextMove.cell] = nextMove.value;
+
+    return new SudokuAutoGame(
+        this, nextMove, newOptions, newSolvedCells, guessed);
   }
 }
 
 class SudokuGame extends SudokuGameBase {
-  SudokuBoard board;
-  Map<SudokuCell, int> fixedCells;
-  int numberOfCellsToSolve;
+  final SudokuBoard board;
+  final Map<SudokuCell, int> fixedCells;
+  final int numberOfCellsToSolve;
 
   static SudokuGame newFromArray(List<List<int>> rows) {
     return (new SudokuGameBuilder(SudokuBoard.default9x9())..fixWithArray(rows))
         .newGame();
   }
 
-  SudokuGame(SudokuBoard board, Map<SudokuCell, int> fixedCells) {
-    this.board = board;
-    this.fixedCells = fixedCells;
-    this.numberOfCellsToSolve =
-        board.relevantCells().length - fixedCells.length;
-    initOptionsPerCell();
-  }
+  SudokuGame(SudokuBoard board, Map<SudokuCell, int> fixedCells)
+      : super(SudokuOptionsPerCell.create(board, fixedCells)),
+        this.board = board,
+        this.fixedCells = fixedCells,
+        this.numberOfCellsToSolve =
+            board.relevantCells().length - fixedCells.length;
 
   @override
   SudokuGame get game => this;
@@ -74,22 +94,21 @@ class SudokuGame extends SudokuGameBase {
   int valueAt(SudokuCell cell) => fixedCells[cell];
 
   bool isFixed(SudokuCell cell) => fixedCells.containsKey(cell);
-
-  void initOptionsPerCell() {
-    optionsPerCell = {};
-    for (var cell in board.relevantCells()) {
-      if (!fixedCells.containsKey(cell)) {
-        optionsPerCell[cell] = board.possibleValues(cell, this);
-      }
-    }
-  }
 }
 
 class SudokuGamePlay extends SudokuGameBase {
-  SudokuGame game;
-  SudokuGameBase previousPlay;
-  Map<SudokuCell, int> solvedCells;
-  SudokuMove lastMove;
+  final SudokuGame game;
+  final SudokuGameBase previousPlay;
+  final Map<SudokuCell, int> solvedCells;
+  final SudokuMove lastMove;
+
+  SudokuGamePlay(SudokuGameBase previousPlay, SudokuMove lastMove,
+      SudokuOptionsPerCell options, Map<SudokuCell, int> solvedCells)
+      : super(options),
+        this.game = previousPlay.game,
+        this.previousPlay = previousPlay,
+        this.solvedCells = solvedCells,
+        this.lastMove = lastMove;
 
   @override
   int valueAt(SudokuCell cell) {
@@ -99,39 +118,21 @@ class SudokuGamePlay extends SudokuGameBase {
     }
     return value;
   }
+
+  bool isSolved() => game.numberOfCellsToSolve == solvedCells.length;
 }
 
 class SudokuAutoGame extends SudokuGamePlay {
-  bool guessed;
+  final bool guessed;
 
-  static SudokuAutoGame newFrom(
-      SudokuGameBase previousPlay, SudokuMove nextMove, bool guessed) {
-    var optionsPerCell = new Map.from(previousPlay.optionsPerCell);
-    optionsPerCell.remove(nextMove.cell);
-
-    previousPlay.board.cellsSharingBoxWith(nextMove.cell, (eachCell) {
-      var values = optionsPerCell[eachCell];
-      if (values != null) {
-        values = new List.from(values)..remove(nextMove.value);
-        if (values.isEmpty) {
-          return null;
-        }
-        optionsPerCell[eachCell] = values;
-      }
-    });
-
-    return new SudokuAutoGame(previousPlay, nextMove, guessed, optionsPerCell);
-  }
-
-  SudokuAutoGame(SudokuGameBase previousPlay, SudokuMove lastMove, bool guessed, Map<SudokuCell, List<int>> optionsPerCell) {
-    this.game = previousPlay.game;
-    this.previousPlay = previousPlay;
-    this.optionsPerCell = optionsPerCell;
-    this.solvedCells = new Map.from(previousPlay.solvedCells);
-    this.solvedCells[lastMove.cell] = lastMove.value;
-    this.lastMove = lastMove;
-    this.guessed = guessed;
-  }
+  SudokuAutoGame(
+      SudokuGameBase previousPlay,
+      SudokuMove lastMove,
+      SudokuOptionsPerCell options,
+      Map<SudokuCell, int> solvedCells,
+      bool guessed)
+      : super(previousPlay, lastMove, options, solvedCells),
+        this.guessed = guessed;
 }
 
 class SudokuGameBuilder {
@@ -156,6 +157,64 @@ class SudokuGameBuilder {
 
   SudokuGame newGame() {
     return new SudokuGame(board, new Map.from(fixedCells));
+  }
+}
+
+class SudokuOptionsPerCell {
+  final Map<SudokuCell, List<int>> map;
+
+  const SudokuOptionsPerCell(this.map);
+
+  static create(SudokuBoard board, Map<SudokuCell, int> fixedCells) {
+    var options = {};
+    for (var cell in board.relevantCells()) {
+      if (!fixedCells.containsKey(cell)) {
+        options[cell] = board.possibleValues(cell, fixedCells);
+      }
+    }
+    return new SudokuOptionsPerCell(options);
+  }
+
+  List<int> operator [](SudokuCell cell) => map[cell];
+
+  bool containsCell(SudokuCell cell) => map.containsKey(cell);
+
+  SudokuMove firstSingleOption() {
+    map.forEach((cell, values) {
+      if (values.length == 1) {
+        return new SudokuMove(cell, values.first);
+      }
+    });
+    return null;
+  }
+
+  SudokuMove takeGuess() {
+    List minValues;
+    var cell;
+    map.forEach((eachCell, eachValues) {
+      if (minValues == null || minValues.length > eachValues.length) {
+        cell = eachCell;
+        minValues = eachValues;
+      }
+    });
+    return new SudokuMove(cell, minValues.first);
+  }
+
+  SudokuOptionsPerCell copyWithMove(SudokuBoard board, SudokuMove move) {
+    Map<SudokuCell, List<int>> newMap = new Map.from(map);
+    newMap.remove(move.cell);
+
+    board.cellsSharingBoxWith(move.cell, (eachCell) {
+      var values = newMap[eachCell];
+      if (values != null) {
+        values = new List.from(values)..remove(move.value);
+        if (values.isEmpty) {
+          return null;
+        }
+        newMap[eachCell] = values;
+      }
+    });
+    return new SudokuOptionsPerCell(newMap);
   }
 }
 
@@ -193,10 +252,10 @@ class SudokuBoard {
     }
   }
 
-  List<int> possibleValues(SudokuCell cell, SudokuGameBase game) {
+  List<int> possibleValues(SudokuCell cell, Map<SudokuCell, int> fixedCells) {
     List<int> values = [1, 2, 3, 4, 5, 6, 7, 8, 9];
     boxesFor(cell, (eachBox) {
-      values = eachBox.possibleValues(cell, values, game);
+      values = eachBox.possibleValues(cell, values, fixedCells);
     });
     return values;
   }
@@ -238,10 +297,10 @@ class SudokuBox {
     return y;
   }
 
-  SudokuMove findMove(Map<SudokuCell, List<int>> openCellsWithValues) {
+  SudokuMove findMove(SudokuOptionsPerCell openCellsWithValues) {
     Map<int, List<SudokuCell>> cellsPerValue = {};
     for (var cell in cells) {
-      if (openCellsWithValues.containsKey(cell)) {
+      if (openCellsWithValues.containsCell(cell)) {
         for (var value in openCellsWithValues[cell]) {
           cellsPerValue.putIfAbsent(value, () => []).add(cell);
         }
@@ -255,13 +314,16 @@ class SudokuBox {
     return null;
   }
 
-  List<int> possibleValues(SudokuCell cell, List<int> values, SudokuGame game) {
+  List<int> possibleValues(
+      SudokuCell cell, List<int> values, Map<SudokuCell, int> fixedCells) {
     var result = values;
     for (var eachCell in cells) {
       if (eachCell != cell) {
-        game.valueIfKnown(eachCell, (int value) {
+        var value = fixedCells[eachCell];
+        if (value != null) {
           result = new List.from(result)..remove(value);
-        });
+        }
+        ;
       }
     }
     return result;
