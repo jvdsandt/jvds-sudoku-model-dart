@@ -50,4 +50,11 @@ void main() {
     var solvedGame = game.solve();
     print("solvedgame = " + solvedGame.toString());
   });
+
+  test("Solve hard game", () {
+    var game = SudokuGame.newFromArray(hard9x9game);
+    print("game = " + game.toString());
+    var solvedGame = game.solve();
+    print("solvedgame = " + solvedGame.toString());
+  });
 }
