@@ -1,7 +1,7 @@
 import "package:test/test.dart";
 
-import "sudoku_model.dart";
-import "sudoku_database.dart";
+import "package:jvds_sudoku_dart/src/sudoku_model.dart";
+import "package:jvds_sudoku_dart/src/sudoku_database.dart";
 
 void main() {
 
