@@ -173,12 +173,11 @@ class SudokuOptionsPerCell {
   bool containsCell(SudokuCell cell) => map.containsKey(cell);
 
   SudokuMove firstSingleOption() {
-    map.forEach((cell, values) {
-      if (values.length == 1) {
-        return new SudokuMove(cell, values.first);
-      }
-    });
-    return null;
+    var cell = map.keys
+        .firstWhere((cell) => map[cell].length == 1, orElse: () => null);
+    return cell == null
+        ? null
+        : new SudokuMove(cell, map[cell].first, 'only option');
   }
 
   SudokuMove takeGuess() {
@@ -190,7 +189,7 @@ class SudokuOptionsPerCell {
         minValues = eachValues;
       }
     });
-    return new SudokuMove(cell, minValues.first);
+    return new SudokuMove(cell, minValues.first, "guess from ${minValues}");
   }
 
   SudokuOptionsPerCell copyWithMove(SudokuBoard board, SudokuMove move) {
@@ -299,12 +298,13 @@ class SudokuBox {
         }
       }
     }
-    cellsPerValue.forEach((value, cells) {
-      if (cells.length == 1) {
-        return new SudokuMove(cells.first, value);
-      }
-    });
-    return null;
+    var value = cellsPerValue.keys.firstWhere(
+        (val) => cellsPerValue[val].length == 1,
+        orElse: () => null);
+    return value == null
+        ? null
+        : new SudokuMove(
+            cellsPerValue[value].first, value, "only option in box ${name}");
   }
 
   List<int> possibleValues(
@@ -378,6 +378,12 @@ class SudokuCell {
 class SudokuMove {
   final SudokuCell cell;
   final int value;
+  final String text;
 
-  const SudokuMove(this.cell, this.value);
+  const SudokuMove(this.cell, this.value, this.text);
+
+  @override
+  String toString() {
+    return "${cell} -> ${value} (${text})";
+  }
 }
