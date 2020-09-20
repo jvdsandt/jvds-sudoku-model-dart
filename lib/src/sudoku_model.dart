@@ -1,3 +1,4 @@
+import 'dart:collection';
 import 'dart:math';
 
 abstract class SudokuGameBase {
@@ -55,7 +56,7 @@ abstract class SudokuGameBase {
     if (newOptions == null) {
       throw new Exception("invalid options");
     }
-    var newSolvedCells = new Map.from(solvedCells)
+    Map<SudokuCell, int> newSolvedCells = new Map.from(solvedCells)
       ..[nextMove.cell] = nextMove.value;
 
     return new SudokuAutoGame(
@@ -74,11 +75,10 @@ class SudokuGame extends SudokuGameBase {
   }
 
   SudokuGame(SudokuBoard board, Map<SudokuCell, int> fixedCells)
-      : super(SudokuOptionsPerCell.create(board, fixedCells)),
-        this.board = board,
+      : this.board = board,
         this.fixedCells = fixedCells,
-        this.numberOfCellsToSolve =
-            board.relevantCells().length - fixedCells.length;
+        this.numberOfCellsToSolve = board.relevantCells().length - fixedCells.length,
+        super(SudokuOptionsPerCell.create(board, fixedCells));
 
   @override
   SudokuGame get game => this;
@@ -97,11 +97,11 @@ class SudokuGamePlay extends SudokuGameBase {
 
   SudokuGamePlay(SudokuGameBase previousPlay, SudokuMove lastMove,
       SudokuOptionsPerCell options, Map<SudokuCell, int> solvedCells)
-      : super(options),
-        this.game = previousPlay.game,
-        this.previousPlay = previousPlay,
-        this.solvedCells = solvedCells,
-        this.lastMove = lastMove;
+      : this.game = previousPlay.game,
+      this.previousPlay = previousPlay,
+      this.solvedCells = solvedCells,
+      this.lastMove = lastMove,
+      super(options);
 
   @override
   int valueAt(SudokuCell cell) {
@@ -124,8 +124,8 @@ class SudokuAutoGame extends SudokuGamePlay {
       SudokuOptionsPerCell options,
       Map<SudokuCell, int> solvedCells,
       bool guessed)
-      : super(previousPlay, lastMove, options, solvedCells),
-        this.guessed = guessed;
+      : this.guessed = guessed,
+        super(previousPlay, lastMove, options, solvedCells);
 }
 
 class SudokuGameBuilder {
@@ -159,7 +159,7 @@ class SudokuOptionsPerCell {
   const SudokuOptionsPerCell(this.map);
 
   static create(SudokuBoard board, Map<SudokuCell, int> fixedCells) {
-    var options = {};
+    var options = HashMap<SudokuCell, List<int>>();
     for (var cell in board.relevantCells()) {
       if (!fixedCells.containsKey(cell)) {
         options[cell] = board.possibleValues(cell, fixedCells);
