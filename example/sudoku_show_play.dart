@@ -1,5 +1,4 @@
-4import "sudoku_model.dart";
-import "sudoku_database.dart";
+import 'package:jvds_sudoku_dart/jvds_sudoku_model.dart';
 
 void main() {
   var game = SudokuGame.newFromArray(standard9x9game);

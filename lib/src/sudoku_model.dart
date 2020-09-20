@@ -16,6 +16,8 @@ abstract class SudokuGameBase {
 
   bool isSolved() => false;
 
+  SudokuMove lastMove();
+
   SudokuGameBase doNextMove() {
     SudokuMove move = optionsPerCell.firstSingleOption();
     if (move != null) {
@@ -87,21 +89,31 @@ class SudokuGame extends SudokuGameBase {
   int valueAt(SudokuCell cell) => fixedCells[cell];
 
   bool isFixed(SudokuCell cell) => fixedCells.containsKey(cell);
+
+  @override
+  SudokuMove lastMove() {
+     throw UnimplementedError();
+  }
 }
 
 class SudokuGamePlay extends SudokuGameBase {
   final SudokuGame game;
   final SudokuGameBase previousPlay;
   final Map<SudokuCell, int> solvedCells;
-  final SudokuMove lastMove;
+  final SudokuMove _lastMove;
 
   SudokuGamePlay(SudokuGameBase previousPlay, SudokuMove lastMove,
       SudokuOptionsPerCell options, Map<SudokuCell, int> solvedCells)
       : this.game = previousPlay.game,
       this.previousPlay = previousPlay,
       this.solvedCells = solvedCells,
-      this.lastMove = lastMove,
+      this._lastMove = lastMove,
       super(options);
+
+  @override
+  SudokuMove lastMove() {
+    return _lastMove;
+  }
 
   @override
   int valueAt(SudokuCell cell) {
