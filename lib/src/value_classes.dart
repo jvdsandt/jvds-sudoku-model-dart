@@ -6,7 +6,6 @@ import 'value_builders.dart';
  * Value class that represents a position on the board.
  */
 class Cell implements Comparable {
-
   final int xpos;
   final int ypos;
 
@@ -26,23 +25,21 @@ class Cell implements Comparable {
   int compareTo(o) => ypos == o.ypos ? xpos - o.xpos : ypos - o.ypos;
 }
 
-enum MoveReason {
-  ONLY_OPTION,
-  ONLY_PLACE,
-  GUESS,
-  MANUAL
-}
+enum MoveReason { ONLY_OPTION, ONLY_PLACE, GUESS, MANUAL }
 
 /**
  * Value class that represents assigning a value to a cell.
  */
 class Move implements Comparable {
-
   final Cell cell;
   final int value;
   final MoveReason reason;
 
   const Move(this.cell, this.value, this.reason);
+
+  bool canBeWrong() {
+    return reason != MoveReason.ONLY_OPTION && reason != MoveReason.ONLY_PLACE;
+  }
 
   @override
   String toString() {
@@ -54,7 +51,6 @@ class Move implements Comparable {
 }
 
 abstract class CellAccess {
-
   const CellAccess();
 
   int valueAt(Cell c);
@@ -68,7 +64,6 @@ abstract class CellAccess {
 }
 
 class SudokuBoard {
-
   final List<SudokuBox> boxes;
   int maxX;
   int maxY;
@@ -82,11 +77,24 @@ class SudokuBoard {
     this.maxY = boxes.map((e) => e.maxY()).reduce((value, e) => max(value, e));
   }
 
-  Set<Cell> relevantCells() =>
-      boxes.fold(new Set(), (Set coll, box) {
+  Set<Cell> relevantCells() => boxes.fold(new Set(), (Set coll, box) {
         coll.addAll(box.cells);
         return coll;
       });
+
+  Set<Cell> cellsSharingBox(Cell cell) {
+    var cellsSet = <Cell>{};
+    boxes.forEach((eachBox) {
+      if (eachBox.includes(cell)) {
+        eachBox.cells.forEach((eachCell) {
+          if (eachCell != cell) {
+            cellsSet.add(eachCell);
+          }
+        });
+      }
+    });
+    return cellsSet;
+  }
 
   void boxesFor(Cell cell, func(SudokuBox b)) {
     for (var box in boxes) {
@@ -109,21 +117,27 @@ class SudokuBoard {
   }
 
   Set<int> possibleValues(Cell cell, CellAccess game) {
-    const values = { 1, 2, 3, 4, 5, 6, 7, 8, 9};
+    var values = {1, 2, 3, 4, 5, 6, 7, 8, 9};
     boxesFor(cell, (eachBox) {
       values = eachBox.possibleValues(cell, values, game);
     });
     return values;
   }
 
-  Map<Cell, Set<int>> processMove(Map<Cell, Set<int>> optionsPerCell, Move move) {
-    // todo
-    return null;
+  Map<Cell, Set<int>> processMove(
+      Map<Cell, Set<int>> optionsPerCell, Move move) {
+    Map<Cell, Set<int>> newOptions = Map.from(optionsPerCell)..remove(move.cell);
+    for (Cell c in cellsSharingBox(move.cell)) {
+      var values = newOptions[c];
+      if (values != null) {
+        newOptions[c] = Set.from(values)..remove(move.value);
+      }
+    }
+    return newOptions;
   }
 }
 
 class SudokuBox {
-
   final String name;
   final List<Cell> cells;
 
@@ -172,7 +186,7 @@ class SudokuBox {
         if (cellsPerValue.containsKey(value)) {
           cellsPerValue[value].add(eachCell);
         } else {
-          cellsPerValue[value] = [ eachCell];
+          cellsPerValue[value] = [eachCell];
         }
       }
     }
@@ -192,13 +206,16 @@ class SudokuBox {
 }
 
 class SudokuGame extends CellAccess {
-
   final SudokuBoard board;
   final Map<Cell, int> fixedCells;
 
   static SudokuGame newFromArray(List<List<int>> rows) {
-    return (new SudokuGameBuilder(SudokuBoard.default9x9())
-      ..fixWithArray(rows))
+    return (new SudokuGameBuilder(SudokuBoard.default9x9())..fixWithArray(rows))
+        .newGame();
+  }
+
+  static SudokuGame newFromLine(String line) {
+    return (new SudokuGameBuilder(SudokuBoard.default9x9())..initFromNumberLine(line))
         .newGame();
   }
 
@@ -226,4 +243,18 @@ class SudokuGame extends CellAccess {
       }
     });
   }
+
+  String toString() {
+    var buffer = StringBuffer();
+    for (int y = 1; y <= board.maxY; y++) {
+      for (int x = 1; x <= board.maxX; x++) {
+        var v = valueAt(Cell(x, y));
+        buffer.write(v == -1 ? "_" : v.toString());
+        buffer.write(" ");
+      }
+      buffer.write("\n");
+    }
+    return buffer.toString();
+  }
+
 }

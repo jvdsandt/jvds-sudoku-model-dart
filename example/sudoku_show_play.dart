@@ -6,14 +6,14 @@ void main() {
 }
 
 void showPlay(SudokuGame game) {
-  SudokuGameBase gamePlay = game;
+  var player = AutoPlayer(game);
   var moveCount = 0;
   print("game:\n" + game.toString());
-  while (!gamePlay.isSolved()) {
+  while (!player.isSolved()) {
     print('');
-    gamePlay = gamePlay.doNextMove();
+    player.doAutoMove();
     moveCount++;
-    print("move ${moveCount}: " + gamePlay.lastMove.toString());
-    print(gamePlay.toString());
+    print("move ${moveCount}: " + player.currentStep.getLastMove().toString());
+    print(player.currentStep.toString());
   }
 }

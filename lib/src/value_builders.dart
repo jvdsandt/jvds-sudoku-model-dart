@@ -1,7 +1,7 @@
 import 'value_classes.dart';
 
 final codeUnit0 = '0'.codeUnitAt(0);
-final codeUnit9 = '9'.codeUnitAt(9);
+final codeUnit9 = '9'.codeUnitAt(0);
 
 class SudokuBoardBuilder {
 
