@@ -6,7 +6,7 @@ void main() {
 }
 
 void showPlay(SudokuGame game) {
-  var gamePlay = game;
+  SudokuGameBase gamePlay = game;
   var moveCount = 0;
   print("game:\n" + game.toString());
   while (!gamePlay.isSolved()) {
