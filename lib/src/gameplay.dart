@@ -43,6 +43,22 @@ class AutoPlayer {
     }
   }
 
+  void reset() {
+    _steps.removeRange(1, _steps.length);
+  }
+
+  /**
+   * Undo the last move. Answer true if this is possible,
+   * otherwise answer false.
+   */
+  bool undoLastMove() {
+    if (_steps.length <= 1) {
+      return false;
+    }
+    _steps.removeLast();
+    return true;
+  }
+
   GameActiveState _processMove(Move move) {
     var newState = GameMoveState(currentStep, move);
     if (newState.hasValidOptions()) {
